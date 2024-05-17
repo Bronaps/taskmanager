@@ -1,0 +1,50 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+.container-fluid {
+    padding: 20px;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 2em;
+}
+
+button {
+    margin-right: 10px;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.modal .form-control {
+    margin-bottom: 10px;
+}
+
+.modal-footer .btn {
+    min-width: 80px;
+}
+
+.table thead th {
+    vertical-align: middle;
+}
+
+.table tbody td[contenteditable="true"] {
+    cursor: text;
+}
+
+.btn-group .btn {
+    min-width: 100px;
+}

@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="upload-form text-center">
+    <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" class="form-inline justify-content-center">
+        <div class="form-group">
+            <input type="file" name="file" class="form-control-file">
+        </div>
+        <button type="submit" class="btn btn-primary ml-2">Upload CSV</button>
+    </form>
+</div>
+{% endblock %}

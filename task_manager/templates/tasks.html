@@ -1,0 +1,274 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="mb-3">
+        <button class="btn btn-success" data-toggle="modal" data-target="#addTaskModal">
+            <i class="fas fa-plus"></i> Add Task
+        </button>
+        <button class="btn btn-info" data-toggle="modal" data-target="#addSubtaskModal">
+            <i class="fas fa-plus"></i> Add Subtask
+        </button>
+        <button class="btn btn-primary" onclick="saveTasks()">
+            <i class="fas fa-save"></i> Save
+        </button>
+        <button class="btn btn-danger" onclick="clearAllTasks()">
+            <i class="fas fa-trash"></i> Clear All
+        </button>
+    </div>
+    <table id="tasks-table" class="table table-bordered table-striped w-100">
+        <thead class="thead-dark">
+            <tr>
+                <th>Task Title</th>
+                <th>Start Time</th>
+                <th>Subtask Description</th>
+                <th>Duration</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+                {% for subtask in task.subtasks %}
+                <tr>
+                    <td contenteditable="true">{{ task.title }}</td>
+                    <td contenteditable="true">{{ task.start_time.strftime('%H:%M') }}</td>
+                    <td contenteditable="true">{{ subtask.description }}</td>
+                    <td contenteditable="true">{{ subtask.duration }}</td>
+                    <td><button class="btn btn-danger btn-sm" onclick="deleteTask(this)" data-toggle="tooltip" data-placement="top" title="Delete Task"><i class="fas fa-trash-alt"></i></button></td>
+                </tr>
+                {% endfor %}
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="my-4">
+        <h2>Plot</h2>
+        <div class="text-center">
+            <img id="task-plot" src="{{ url_for('plot_tasks') }}" alt="Task Plot" class="img-fluid w-100">
+        </div>
+    </div>
+</div>
+
+<!-- Add Task Modal -->
+<div class="modal fade" id="addTaskModal" tabindex="-1" role="dialog" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTaskModalLabel">Add Task</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <div class="form-group">
+                        <label for="taskTitle">Task Title</label>
+                        <input type="text" class="form-control" id="taskTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="taskStartTime">Start Time</label>
+                        <input type="time" class="form-control" id="taskStartTime" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="addTaskFromModal()">Add Task</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Subtask Modal -->
+<div class="modal fade" id="addSubtaskModal" tabindex="-1" role="dialog" aria-labelledby="addSubtaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addSubtaskModalLabel">Add Subtask</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="subtaskForm">
+                    <div class="form-group">
+                        <label for="subtaskDescription">Subtask Description</label>
+                        <input type="text" class="form-control" id="subtaskDescription" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="subtaskDuration">Duration (minutes)</label>
+                        <input type="number" class="form-control" id="subtaskDuration" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="addSubtaskFromModal()">Add Subtask</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1" role="dialog" aria-labelledby="alertModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alertModalLabel">Alert</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="alertMessage">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function(){
+        $('[data-toggle="tooltip"]').tooltip();
+        $('#tasks-table').DataTable({
+            responsive: true,
+            paging: true,
+            searching: true,
+            ordering: true
+        });
+    });
+
+    function showAlert(message, type='info') {
+        toastr[type](message);
+    }
+
+    function addTaskFromModal() {
+        var taskTitle = document.getElementById('taskTitle').value;
+        var taskStartTime = document.getElementById('taskStartTime').value;
+
+        if (!taskTitle || !taskStartTime) {
+            showAlert('Please fill in all fields.', 'warning');
+            return;
+        }
+
+        var table = document.getElementById("tasks-table").getElementsByTagName('tbody')[0];
+        var row = table.insertRow();
+        var cell1 = row.insertCell(0);
+        var cell2 = row.insertCell(1);
+        var cell3 = row.insertCell(2);
+        var cell4 = row.insertCell(3);
+        var cell5 = row.insertCell(4);
+
+        cell1.contentEditable = "true";
+        cell2.contentEditable = "true";
+        cell3.contentEditable = "true";
+        cell4.contentEditable = "true";
+
+        cell1.innerText = taskTitle;
+        cell2.innerText = taskStartTime;
+        cell3.innerText = "";
+        cell4.innerText = "";
+        cell5.innerHTML = '<button class="btn btn-danger btn-sm" onclick="deleteTask(this)" data-toggle="tooltip" data-placement="top" title="Delete Task"><i class="fas fa-trash-alt"></i></button>';
+
+        $('#addTaskModal').modal('hide');
+        document.getElementById('taskForm').reset();
+        showAlert('Task added successfully.', 'success');
+    }
+
+    function addSubtaskFromModal() {
+        var subtaskDescription = document.getElementById('subtaskDescription').value;
+        var subtaskDuration = document.getElementById('subtaskDuration').value;
+
+        if (!subtaskDescription || !subtaskDuration) {
+            showAlert('Please fill in all fields.', 'warning');
+            return;
+        }
+
+        var table = document.getElementById("tasks-table").getElementsByTagName('tbody')[0];
+        var selectedRow = table.rows[table.rows.length - 1];
+        var cells = selectedRow.cells;
+
+        var taskTitle = cells[0].innerText;
+        var startTime = cells[1].innerText;
+        
+        var startTimeDatetime = new Date();
+        var startTimeParts = startTime.split(':');
+        startTimeDatetime.setHours(parseInt(startTimeParts[0]), parseInt(startTimeParts[1]), 0, 0);
+        var endTimeDatetime = new Date(startTimeDatetime.getTime() + subtaskDuration * 60000);
+
+        var newRow = table.insertRow();
+        newRow.insertCell(0).contentEditable = "true";
+        newRow.insertCell(0).innerText = taskTitle;
+        newRow.insertCell(1).contentEditable = "true";
+        newRow.insertCell(1).innerText = endTimeDatetime.getHours().toString().padStart(2, '0') + ':' + endTimeDatetime.getMinutes().toString().padStart(2, '0');
+        newRow.insertCell(2).contentEditable = "true";
+        newRow.insertCell(2).innerText = subtaskDescription;
+        newRow.insertCell(3).contentEditable = "true";
+        newRow.insertCell(3).innerText = subtaskDuration;
+        var cell = newRow.insertCell(4);
+        cell.innerHTML = '<button class="btn btn-danger btn-sm" onclick="deleteTask(this)" data-toggle="tooltip" data-placement="top" title="Delete Task"><i class="fas fa-trash-alt"></i></button>';
+
+        $('#addSubtaskModal').modal('hide');
+        document.getElementById('subtaskForm').reset();
+        showAlert('Subtask added successfully.', 'success');
+    }
+
+    function saveTasks() {
+        var table = document.getElementById("tasks-table");
+        var tasks = [];
+        for (var i = 1; i < table.rows.length; i++) {
+            var row = table.rows[i];
+            var task = {
+                'Task Title': row.cells[0].innerText,
+                'Start Time': row.cells[1].innerText,
+                'Subtask Description': row.cells[2].innerText,
+                'Duration': row.cells[3].innerText
+            };
+            tasks.push(task);
+        }
+        fetch('/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(tasks),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status == 'success') {
+                showAlert('Tasks saved successfully.', 'success');
+                updatePlot();
+            } else {
+                showAlert('Failed to save tasks.', 'error');
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+            showAlert('An error occurred while saving tasks.', 'error');
+        });
+    }
+
+    function deleteTask(button) {
+        var row = button.parentElement.parentElement;
+        row.parentElement.removeChild(row);
+        saveTasks();
+        showAlert('Task deleted successfully.', 'success');
+    }
+
+    function clearAllTasks() {
+        if (confirm('Are you sure you want to clear all tasks?')) {
+            var table = document.getElementById("tasks-table").getElementsByTagName('tbody')[0];
+            while (table.rows.length > 0) {
+                table.deleteRow(0);
+            }
+            saveTasks();
+            showAlert('All tasks cleared.', 'success');
+        }
+    }
+
+    function updatePlot() {
+        var plotImg = document.getElementById('task-plot');
+        plotImg.src = "{{ url_for('plot_tasks') }}" + "?" + new Date().getTime(); // Add a timestamp to force refresh
+    }
+</script>
+{% endblock %}
